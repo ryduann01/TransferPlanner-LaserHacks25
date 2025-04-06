@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>UC Transfer Tool</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; max-width: 700px; margin: auto; }
+    input, select, button { width: 100%; padding: 0.5rem; margin: 0.5rem 0; }
+    #results { margin-top: 2rem; }
+    .card { background: #f9f9f9; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>UC Transfer GPA + Salary Estimator</h1>
+
+  <label for="campuses">Enter Campuses (comma-separated):</label>
+  <input id="campuses" placeholder="e.g., UCLA,UCI,UCB">
+
+  <label for="major">Select Your Major:</label>
+  <select id="major">
+    {% for item in majors %}
+      <option value="{{ item.major_name }}">{{ item.major_name }} ({{ item.campuses }})</option>
+    {% endfor %}
+  </select>
+
+  <button onclick="fetchData()">Search</button>
+
+  <div id="results"></div>
+
+  <script>
+    async function fetchData() {
+      const campuses = document.getElementById("campuses").value;
+      const major = document.getElementById("major").value;
+
+      const res = await fetch('/predict', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campuses, major })
+      });
+
+      const data = await res.json();
+      const results = document.getElementById("results");
+      results.innerHTML = "";
+
+      if (data.gpa.length === 0) {
+        results.innerHTML += `<div class="card">No GPA data found.</div>`;
+      } else {
+        data.gpa.forEach(g => {
+          results.innerHTML += `
+            <div class="card">
+              <strong>${g.campus}</strong><br>
+              Major: ${g.major}<br>
+              Admit GPA Range: ${g.gpa_range}<br>
+              Admit Rate: ${g.admit_rate}
+            </div>`;
+        });
+      }
+
+      if (data.salary.length > 0) {
+        results.innerHTML += `<h2>UCI Salary Data</h2>`;
+        data.salary.forEach(s => {
+          results.innerHTML += `
+            <div class="card">
+              <strong>${s.label}</strong><br>
+              2 Years: ${s.y2}<br>
+              5 Years: ${s.y5}<br>
+              10 Years: ${s.y10}
+            </div>`;
+        });
+      }
+    }
+  </script>
+</body>
+</html>
